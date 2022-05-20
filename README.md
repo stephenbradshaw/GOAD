@@ -6,6 +6,9 @@
 GOAD is a pentest active directory LAB project.
 The purpose of this lab is to give pentesters a vulnerable Active directory environement ready to use to practice usual attack techniques.
 
+## Details about this fork
+This fork of GOAD has been modified in order to work on KVM/QEMU hosts using the libvirt plugin. To achieve this, the vagrant images from the original have been replaced with similar libvirt compatible versions. The version of Ubuntu used for the ELK server has also been updated to 20.04, and machine definitions in the Vagrantfile have been updated to have specific cpu and memory settings. Some specifics about how the ansible roles have been organised have also been modified in order to work around some issues I had with overloading the chocolatey servers. The install and usage sections in this README have also been updated to account for these changes.
+
 ## warning
 This lab is extremly vulnerable, do not reuse receipe to build your environement and do not deploy this environment on internet.
 This repository is for pentest practice only.
@@ -19,11 +22,13 @@ So far the lab has only been tested on a linux machine, but it should work as we
 
 For the setup to work properly you need to install:
 - **vagrant** from their official site [vagrant](https://www.vagrantup.com/downloads). The version you can install through your favourite package manager (apt, yum, ...) is probably not the latest one.
-- Install vagrant plugin vbguest: `vagrant plugin install vagrant-vbguest`
+- Install vagrant plugin libvirt: `vagrant plugin install vagrant-libvirt`
+- Install vagrant plugin winrm: `vagrant plugin install winrm`
+- Install vagrant plugin winrm-elevated: `vagrant plugin install winrm-elevated`
 - **ansible** following the extensive guide on their website [ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html).
-  - **Tested with ansible-core (2.11)**
-  - `pip install ansible-core==2.11.1 --user`
-- **virtualbox** actually the vms are provided to be run on virtualbox so you need a working virtualbox environement on your computer
+  - **Tested with ansible-core (2.13.0)**
+  - `pip install ansible-core`
+- **KVM/QEMU** these VMs will run using KVM/QEMU, so you will need to install those
 - **pywinrm** be sure you got the pywinrm package installed `pip install pywinrm`
 - **ansible windows** `ansible-galaxy collection install ansible.windows`
 - **ansible community.windows** `ansible-galaxy collection install community.windows`
@@ -31,27 +36,35 @@ For the setup to work properly you need to install:
 - **ansible community.general**  `ansible-galaxy collection install community.general`
 - you also need `sshpass` for the elk installation
 
-> Vagrant and virtualbox are used to provide the virtual machines and Ansible is use to automate the configuration and vulnerabilites setup.
+> Vagrant and KVM/QEMU are used to provide the virtual machines and Ansible is use to automate the configuration and vulnerabilites setup.
+
+### Special note for installing on Ubuntu 22.04 or other systems with OpenSSL 3.0
+
+On systems with OpenSSL 3.0, such as Ubuntu 22.04 you might have problems with winrm connections failing with an error of "Digest initialization failed: initialization error". This is due to MD4 being designated as a legacy digest cipher on OpenSSL 3.0. 
+
+You can fix this by enabling support for legacy ciphers in OpenSSL by editing your config file (which is `/usr/lib/ssl/openssl.cnf` on Ubuntu) in a manner similar to what is described [here](https://github.com/nodejs/node/issues/40455).
+
 
 ### Space use
-- the lab take environ 60Go (but you have to get the space for the vms vagrant images windows server 2016 (6.15Go) / windows server 2019 (6.52) / ubuntu 18.04 (502M))
+- the lab take environ 60Go (but you have to get the space for the vms vagrant images windows server 2016 (6.15Go) / windows server 2019 (6.52) / ubuntu 20.04 (502M))
 - the total space needed for the lab is ~80-100 Go (and more if you take snapshots)
 
 ### Start / Setup
-The default domain will be **sevenkingdoms.local**, on the subnet 192.168.56.1/24 and each machine has only been allocated with 1CPU and 1024MB of memory. If you want to change some of these performance settings you can modify the Vagrantfile.
+The default domain will be **sevenkingdoms.local**, on the subnet 192.168.56.1/24 which will be configured on a newly created isolated network domain named `goad_private`. Each machine has been allocated its own settings for allocated virtual CPUs and memory, which can be adjusted as needed in the Vagrantfile. 
 
 To have the lab up and running this is the commands you should do:
 
 - VMs creation
 
 ```bash
-git clone git@github.com:Orange-Cyberdefense/GOAD.git
+git clone git@github.com:stephenbradshaw/GOAD.git
 cd GOAD/
 vagrant up # this will create the vms
 ```
 
 - VMs provisionning
-  - The main.yml playbook is build in 4 parts. each parts can be run independently 
+  - The main.yml playbook is build in 7 parts. each parts can be run independently 
+  - Due to potential issues with the Chocolately servers, the components reliant on this have been seperated into their own playbooks to enable them to be more easily replayed in an isolated fashion if there are any problems
 
 ```bash
 cd ansible
@@ -59,6 +72,9 @@ ansible-playbook build.yml # Install stuff and prepare vm
 ansible-playbook elk.yml   # Install elk on the ubuntu vm and log agent on windows vm
 ansible-playbook ad.yml    # Install active directory by following the config.json file (domain/users/groups/...)
 ansible-playbook vulns.yml # Configure some vulnerabilities
+ansible-playbook additional_dc01.yml # Install Chocolatey and other reliant packages on DC01
+ansible-playbook additional_dc02.yml # Install Chocolatey and other reliant packages on DC02
+ansible-playbook additional_srv01.yml # Install Chocolatey and other reliant packages on SRV01
 ```
 
 - Or you can run all the playbook in one step
@@ -87,6 +103,7 @@ vagrant up   # will start the lab
 ```
 ansible-playbook main.yml --limit=dc02
 ```
+**Update**: Be aware that this feature is untested on this fork, use at your own risk.
 
 ### Update
 If you want to update and replay the vulnerabilities playbook to update the lab you should do :

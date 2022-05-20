@@ -1,33 +1,33 @@
 Vagrant.configure("2") do |config|
 
-# versions available : https://app.vagrantup.com/StefanScherer/boxes/windows_10
+# versions available : https://app.vagrantup.com/peru 
   boxes = [
-    { :name => "kingslanding", :ip => "192.168.56.10", :box => "StefanScherer/windows_2019", :box_version => "2021.05.15", :os => "windows",
+    { :name => "kingslanding", :ip => "192.168.56.10", :box => "peru/windows-server-2019-standard-x64-eval", :box_version => "20220510.01", :os => "windows", :memory => 2048, :cpus => 1,
       :forwarded_port => [
         {:guest => 3389, :host => 23389, :id => "msrdp"},
         {:guest => 5985, :host => 25985, :id => "winrm"}
       ]
     },
-    { :name => "dragonstone", :ip => "192.168.56.11", :box => "StefanScherer/windows_2016", :box_version => "2017.12.14", :os => "windows",
+    { :name => "dragonstone", :ip => "192.168.56.11", :box => "peru/windows-server-2016-standard-x64-eval", :box_version => "20220510.01", :os => "windows", :memory => 2048, :cpus => 1,
       :forwarded_port => [
         {:guest => 3389, :host => 33389, :id => "msrdp"},
         {:guest => 5985, :host => 35985, :id => "winrm"}
       ]
     },
-    { :name => "winterfell", :ip => "192.168.56.20", :box => "StefanScherer/windows_2019", :box_version => "2020.07.17", :os => "windows",
+    { :name => "winterfell", :ip => "192.168.56.20", :box => "peru/windows-server-2019-standard-x64-eval", :box_version => "20220510.01", :os => "windows", :memory => 2048, :cpus => 1,
       :forwarded_port => [
         {:guest => 3389, :host => 43389, :id => "msrdp"},
         {:guest => 5985, :host => 45985, :id => "winrm"}
       ] 
     },
-    { :name => "elk", :ip => "192.168.56.50", :box => "bento/ubuntu-18.04", :os => "linux",
+    { :name => "elk", :ip => "192.168.56.50", :box => "generic/ubuntu2004", :os => "linux", :memory => 1024, :cpus => 1,
       :forwarded_port => [
         {:guest => 22, :host => 2210, :id => "ssh"}
       ]
     }
   ]
 #  ,
-#    { :name => "highgarden", :ip => "192.168.56.30", :box => "win7/box/windows7_pro.box", :os => "windows",
+#    { :name => "highgarden", :ip => "192.168.56.30", :box => "peru/windows-10-enterprise-x64-eval", :box_version => "", :os => "windows", :memory => 1024, :cpus => 1,
 #      :forwarded_port => [
 #        {:guest => 3389, :host => 33389, :id => "msrdp"},
 #        {:guest => 5985, :host => 35985, :id => "winrm"}
@@ -35,15 +35,6 @@ Vagrant.configure("2") do |config|
 #    }
 #  ]
 
-  config.vm.provider "virtualbox" do |v|
-    v.memory = 1024
-    v.cpus = 1
-  end
-
-  config.vm.provider "vmware_desktop" do |v|
-    v.vmx["memsize"] = "1024"
-    v.vmx["numvcpus"] = "1"
-  end
 
   config.vm.boot_timeout = 600
   config.vm.graceful_halt_timeout = 600
@@ -52,6 +43,15 @@ Vagrant.configure("2") do |config|
 
   boxes.each do |box|
     config.vm.define box[:name] do |target|
+
+
+      # PROVIDER
+      target.vm.provider "libvirt" do |v|
+        v.memory = box[:memory]
+        v.cpus = box[:cpus]
+        v.default_prefix = "goad_"
+      end
+
       # BOX
       target.vm.box = box[:box]
       if box.has_key?(:box_version)
@@ -59,7 +59,12 @@ Vagrant.configure("2") do |config|
       end
       
       # IP
-      target.vm.network :private_network, ip: box[:ip]
+      target.vm.network :private_network,
+                        :ip => box[:ip],
+                        :libvirt__network_name => "goad_private",
+                        :libvirt__forward_mode => "none",
+                        :libvirt__host_ip => "192.168.56.1",
+                        :libvirt__dhcp_enabled => false
 
       # OS specific
       if box[:os] == "windows"

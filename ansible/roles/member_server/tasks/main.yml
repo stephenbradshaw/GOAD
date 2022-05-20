@@ -1,30 +1,3 @@
-- name: Ensure chocolatey is installed
-  win_chocolatey:
-    name:
-    - chocolatey
-    - chocolatey-core.extension
-    state: present
-
-- name: disable enhanced exit codes
-  win_chocolatey_feature:
-    name: useEnhancedExitCodes
-    state: disabled
-
-- name: Install multiple packages sequentially
-  win_chocolatey:
-    name: '{{ item }}'
-    state: present
-  with_items:
-  - notepadplusplus
-  - putty
-  - python
-  - git
-  - 7zip
-  - sysinternals
-  - wget
-  - pstools
-  ignore_errors: yes
-
 - name: "Change the hostname to {{hostname}}"
   win_hostname:
     name: "{{hostname}}"
@@ -104,9 +77,3 @@
   win_reboot:
   when: domain_state.reboot_required
 
-- name: Install chocolatey
-  win_chocolatey:
-    name: 
-       - chocolatey
-       - chocolatey-core.extension
-    state: present

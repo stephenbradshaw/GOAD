@@ -3,11 +3,18 @@
 - import_playbook: build.yml
 # Add monitoring
 - import_playbook: elk.yml
+# Add additional software DC01
+- import_playbook: additional_dc01.yml
+
 # --------------------------------------------------------------------
 # VM ready - start insert specific scenario
 # --------------------------------------------------------------------
 # Turn server into DC and load active directory data (users/groups/ou)
 - import_playbook: ad.yml
+# Add additional software DC02
+- import_playbook: additional_dc02.yml
 # --------------------------------------------------------------------
 # specifics vulns linked to the scenario are here
 - import_playbook: vulns.yml
+# Add additional software SRV01
+- import_playbook: additional_srv01.yml

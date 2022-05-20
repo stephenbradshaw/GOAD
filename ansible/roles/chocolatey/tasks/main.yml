@@ -1,0 +1,6 @@
+- name: Ensure chocolatey is installed
+  win_chocolatey:
+    name:
+    - chocolatey
+    - chocolatey-core.extension
+    state: present

@@ -1,0 +1,16 @@
+# Choclately dependant additional software ==========================================================================================
+- hosts: dc01
+
+  tasks:
+    - name: Install choclatey
+      include_role:
+        name: chocolatey
+
+    - name: Install log agent using chocolatey
+      include_role: 
+        name: logs_windows
+      tags: agent
+
+    - name: Install additional software using chocolatey
+      include_role:
+        name: chocolatey_software
